@@ -4,6 +4,10 @@
 const express = require('express')
 const cors = require ('cors')
 const dotenv = require('dotenv')
+const bcrypt = require("bcrypt");
+const session = require("express-session");
+const MySQLStore = require("express-mysql-session")(session);
+const path = require("path");
 dotenv.config()
 
 const app = express();

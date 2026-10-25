@@ -10,7 +10,6 @@ let instance = null;
 // if you use .env to configure
 console.log("HOST: " + process.env.HOST);
 console.log("DB USER: " + process.env.DB_USER);
-console.log("PASSWORD: " + process.env.PASSWORD);
 console.log("DATABASE: " + process.env.DATABASE);
 console.log("DB PORT: " + process.env.DB_PORT);
 
@@ -23,16 +22,6 @@ const connection = mysql.createConnection({
 });
 
 
-// if you configure directly in this file, there is a security issue, but it will work
-/*
-const connection = mysql.createConnection({
-     host:"localhost",
-     user:"root",        
-     password:"",
-     database:"web_app",
-     port:3306
-});
-*/
 
 
 connection.connect((err) => {
@@ -205,6 +194,39 @@ class DbService{
       }  catch(error){
          console.log(error);
       }
+
+  }
+
+  async createUser(username, hashedPassword, firstname, lastname, salary, age){
+   const query = `INSERT INTO users (username, password, firstname, lastname, salary, age, registerday) VALUES (?,?,?,?,?,?, CURDATE());`;
+   return new Promise((resolve, reject) => {
+      connection.query(query, [username, hashedPassword, firstname,lastname,salary,age],(err,result)=>{
+         if (err) reject(err);
+         else resolve(result);
+      })
+   })
+  }
+
+  async getUserByUsername(username) {
+   const query = `SELECT * FROM users WHERE username = ?;`;
+
+   return new Promise((resolve,reject)=>{
+      connection.query(query, [username], (err,results)=>{
+         if (err) reject(err);
+         else resolve(results[0], null);
+      })
+   })
+  }
+
+  async updateSignInTime(username){
+   const query = `UPDATE users SET signintime = NOW() WHERE username = ?`;
+
+   return new Promise((resolve, reject) => {
+      connection.query(query, [username], (err, result)=>{
+         if (err) reject(err);
+         else resolve(result);
+      })
+   })
   }
 }
 
