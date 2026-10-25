@@ -19,6 +19,28 @@ app.use(cors());
 app.use(express.json())
 app.use(express.urlencoded({extended: false}));
 
+
+const sessionStore = new MySQLStore({
+    host: process.env.HOST,
+    user: process.env.DB_USER,
+    password: process.env.PASSWORD,
+    database: process.env.DATABASE,
+    port: Number(process.env.DB_PORT)
+})
+
+app.use(session({
+    name: "app.sid",
+    secret: process.env.SESSION_SECRET,
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000
+    }
+}))
 // create
 app.post('/insert', (request, response) => {
     console.log("app: insert a row.");
@@ -34,6 +56,168 @@ app.post('/insert', (request, response) => {
     .then(data => response.json({data: data})) // return the newly added row to frontend, which will show it
    // .then(data => console.log({data: data})) // debug first before return by response
    .catch(err => console.log(err));
+});
+
+app.post("/signup", async (request, response) => {
+    try {
+        const {
+            username,
+            password,
+            firstname,
+            lastname,
+            salary,
+            age
+        } = request.body;
+
+        // Validate input
+        if (
+            typeof username !== "string" ||
+            typeof password !== "string" ||
+            typeof firstname !== "string" ||
+            typeof lastname !== "string" ||
+            !username.trim() ||
+            !firstname.trim() ||
+            !lastname.trim() ||
+            username.length > 50 ||
+            firstname.length > 50 ||
+            lastname.length > 50 ||
+            password.length < 8 ||
+            Buffer.byteLength(password, "utf8") > 72 ||
+            !Number.isInteger(age) ||
+            age < 0 ||
+            age > 150 ||
+            typeof salary !== "number" ||
+            !Number.isFinite(salary) ||
+            salary < 0
+        ) {
+            return response.status(400).json({
+                success: false,
+                message: "Invalid registration information."
+            });
+        }
+
+        const db = dbService.getDbServiceInstance();
+
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Insert the user
+        await db.createUser(
+            username.trim(),
+            hashedPassword,
+            firstname.trim(),
+            lastname.trim(),
+            salary,
+            age
+        );
+
+        response.status(201).json({
+            success: true,
+            message: "Account created successfully!"
+        });
+
+    } catch (error) {
+        if (error.code === "ER_DUP_ENTRY") {
+            return response.status(409).json({
+                success: false,
+                message: "Username already exists."
+            });
+        }
+
+        console.error(error);
+
+        response.status(500).json({
+            success: false,
+            message: "Registration failed."
+        });
+    }
+});
+
+app.post("/signin", async (request, response) => {
+    try {
+        const { username, password } = request.body;
+
+        if (
+            typeof username !== "string" ||
+            typeof password !== "string"
+        ) {
+            return response.status(400).json({
+                success: false,
+                message: "Invalid credentials."
+            });
+        }
+
+        const db = dbService.getDbServiceInstance();
+
+        // Find user
+        const user = await db.getUserByUsername(username);
+
+        if (!user) {
+            return response.status(401).json({
+                success: false,
+                message: "Invalid username or password."
+            });
+        }
+
+        // Compare password with stored hash
+        const passwordMatches = await bcrypt.compare(
+            password,
+            user.password
+        );
+
+        if (!passwordMatches) {
+            return response.status(401).json({
+                success: false,
+                message: "Invalid username or password."
+            });
+        }
+
+        // Create a new authenticated session
+        request.session.regenerate(async (err) => {
+            if (err) {
+                return response.status(500).json({
+                    success: false,
+                    message: "Session error."
+                });
+            }
+
+            try {
+                request.session.username = user.username;
+
+                await db.updateSignInTime(user.username);
+
+                request.session.save((saveError) => {
+                    if (saveError) {
+                        return response.status(500).json({
+                            success: false,
+                            message: "Session error."
+                        });
+                    }
+
+                    response.json({
+                        success: true,
+                        message: "Login successful!",
+                        username: user.username
+                    });
+                });
+
+            } catch (error) {
+                console.error(error);
+                response.status(500).json({
+                    success: false,
+                    message: "Login failed."
+                });
+            }
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        response.status(500).json({
+            success: false,
+            message: "Login failed."
+        });
+    }
 });
 
 
@@ -52,6 +236,60 @@ app.get('/getAll', (request, response) => {
     .catch(err => console.log(err));
 });
 
+app.get("/me", async (request, response) => {
+    if (!request.session.username) {
+        return response.status(401).json({
+            success: false,
+            message: "Not signed in."
+        });
+    }
+
+    try {
+        const db = dbService.getDbServiceInstance();
+
+        const user = await db.getUserByUsername(
+            request.session.username
+        );
+
+        if (!user) {
+            return response.status(401).json({
+                success: false,
+                message: "User not found."
+            });
+        }
+
+        response.json({
+            username: user.username,
+            firstname: user.firstname,
+            lastname: user.lastname
+        });
+
+    } catch (error) {
+        console.error(error);
+        response.status(500).json({
+            success: false,
+            message: "Server error."
+        });
+    }
+});
+
+app.post("/logout", (request, response) => {
+    request.session.destroy((err) => {
+        if (err) {
+            return response.status(500).json({
+                success: false,
+                message: "Logout failed."
+            });
+        }
+
+        response.clearCookie("app.sid");
+
+        response.json({
+            success: true,
+            message: "Logged out successfully."
+        });
+    });
+});
 
 app.get('/search/:name', (request, response) => { // we can debug by URL
     
@@ -142,6 +380,8 @@ app.listen(process.env.PORT,
 */
 
 // if we configure here directly
+
+app.use(express.static(path.join(__dirname, "../frontend")));
 app.listen(5050, 
     () => {
         console.log("I am listening on the fixed port 5050.")
