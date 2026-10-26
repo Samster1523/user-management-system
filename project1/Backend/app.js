@@ -13,6 +13,7 @@ dotenv.config()
 const app = express();
 
 const dbService = require('./dbService');
+const { resourceUsage } = require('process');
 
 
 app.use(cors());
@@ -42,7 +43,7 @@ app.use(session({
     }
 }))
 // create
-app.post('/insert', (request, response) => {
+app.post('/insert', requireLogin, (request, response) => {
     console.log("app: insert a row.");
     // console.log(request.body); 
 
@@ -58,7 +59,7 @@ app.post('/insert', (request, response) => {
    .catch(err => console.log(err));
 });
 
-app.post("/signup", async (request, response) => {
+app.post("/signup",  async (request, response) => {
     try {
         const {
             username,
@@ -133,7 +134,7 @@ app.post("/signup", async (request, response) => {
     }
 });
 
-app.post("/signin", async (request, response) => {
+app.post("/signin",  async (request, response) => {
     try {
         const { username, password } = request.body;
 
@@ -224,7 +225,7 @@ app.post("/signin", async (request, response) => {
 
 
 // read 
-app.get('/getAll', (request, response) => {
+app.get('/getAll', requireLogin, (request, response) => {
     
     const db = dbService.getDbServiceInstance();
 
@@ -291,7 +292,7 @@ app.post("/logout", (request, response) => {
     });
 });
 
-app.get('/search/:name', (request, response) => { // we can debug by URL
+app.get('/search/:name', requireLogin, (request, response) => { // we can debug by URL
     
     const {name} = request.params;
     
@@ -312,7 +313,7 @@ app.get('/search/:name', (request, response) => { // we can debug by URL
 
 
 // update
-app.patch('/update', 
+app.patch('/update', requireLogin,
      (request, response) => {
           console.log("app: update is called");
           //console.log(request.body);
@@ -330,7 +331,7 @@ app.patch('/update',
 );
 
 // delete service
-app.delete('/delete/:id', 
+app.delete('/delete/:id', requireLogin,
      (request, response) => {     
         const {id} = request.params;
         console.log("delete");
@@ -345,7 +346,7 @@ app.delete('/delete/:id',
 )   
 
 // debug function, will be deleted later
-app.post('/debug', (request, response) => {
+app.post('/debug',requireLogin, (request, response) => {
     // console.log(request.body); 
 
     const {debug} = request.body;
@@ -356,7 +357,7 @@ app.post('/debug', (request, response) => {
 
 // debug function: use http://localhost:5050/testdb to try a DB function
 // should be deleted finally
-app.get('/testdb', (request, response) => {
+app.get('/testdb', requireLogin, (request, response) => {
     
     const db = dbService.getDbServiceInstance();
 
@@ -381,7 +382,31 @@ app.listen(process.env.PORT,
 
 // if we configure here directly
 
-app.use(express.static(path.join(__dirname, "../frontend")));
+const frontendPath = path.join(__dirname, "../frontend");
+
+function requireLogin(request, response, next) {
+    if (!request.session.username) {
+        return response.redirect("/");
+    }
+
+    next();
+}
+
+// First page visitors see
+app.get("/", (request, response) => {
+    response.sendFile(path.join(frontendPath, "login.html"));
+});
+
+// Existing database page, available after login
+app.get("/index.html", requireLogin, (request, response) => {
+    response.sendFile(path.join(frontendPath, "index.html"));
+});
+
+// Serve frontend CSS and JavaScript
+app.use(express.static(frontendPath, {
+    index: false
+}));
+//app.use(express.static(path.join(__dirname, "../frontend")));
 app.listen(5050, 
     () => {
         console.log("I am listening on the fixed port 5050.")

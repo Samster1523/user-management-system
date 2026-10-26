@@ -290,3 +290,11 @@ function loadHTMLTable(data){
 
     table.innerHTML = tableHtml;
 }
+
+document.getElementById("logout-btn")?.addEventListener("click", async () => {
+    const response = await fetch("/logout", { method: "POST" });
+
+    if (response.ok) {
+        window.location.href = "/";
+    }
+});
