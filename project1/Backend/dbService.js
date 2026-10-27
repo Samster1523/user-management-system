@@ -149,6 +149,23 @@ class DbService{
          }
    }
 
+   async searchById(id){
+      try{
+         const response = await new Promise((resolve, reject) =>{
+            const query = `SELECT * FROM names where id = ?;`;
+            connection.query(query, [Number(id)], (err, res) => {
+               if(err) reject(new Error(err.message));
+               else resolve(res);
+            })
+         })
+
+         console.log(response);
+         return response;
+      } catch (err){
+         console.log(err);
+      }
+   }
+
    async deleteRowById(id){
          try{
               id = parseInt(id, 10);

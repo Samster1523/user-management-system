@@ -102,6 +102,18 @@ searchBtn.onclick = function (){
     .then(data => loadHTMLTable(data['data']));
 }
 
+const searchIdBtn = document.querySelector('#search-id-btn');
+searchIdBtn.onclick = function(){
+    const searchInputId = document.querySelector('#search-input-id');
+    const searchValueId = searchInputId.value;
+    searchInputId.value = "";
+
+    fetch('http://localhost:5050/searchid/' + searchValueId)
+    .then(response => response.json())
+    .then(data => loadHTMLTable(data['data']));
+}
+
+
 let rowToDelete; 
 
 // when the delete button is clicked, since it is not part of the DOM tree, we need to do it differently

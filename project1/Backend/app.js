@@ -311,6 +311,19 @@ app.get('/search/:name', requireLogin, (request, response) => { // we can debug 
     .catch(err => console.log(err));
 });
 
+app.get('/searchid/:id', requireLogin, (request, response) => {
+    
+    const {id} = request.params;
+
+    console.log(id);
+
+    const db = dbService.getDbServiceInstance();
+
+    let result = db.searchById(id);
+
+    result.then(data => response.json({data: data})).catch(err => console.log(err));
+});
+
 
 // update
 app.patch('/update', requireLogin,
