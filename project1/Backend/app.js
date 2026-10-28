@@ -1,6 +1,3 @@
-// Backend: application services, accessible by URIs
-
-
 const express = require('express')
 const cors = require ('cors')
 const dotenv = require('dotenv')
@@ -42,22 +39,74 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000
     }
 }))
-// create
-app.post('/insert', requireLogin, (request, response) => {
-    console.log("app: insert a row.");
-    // console.log(request.body); 
 
-    const {name} = request.body;
-    const db = dbService.getDbServiceInstance();
 
-    const result = db.insertNewName(name);
- 
-    // note that result is a promise
-    result 
-    .then(data => response.json({data: data})) // return the newly added row to frontend, which will show it
-   // .then(data => console.log({data: data})) // debug first before return by response
-   .catch(err => console.log(err));
+
+
+app.post('/insert', requireLogin, async (request, response) => {
+    
+ try {
+        const {
+            username,
+            password,
+            firstname,
+            lastname,
+            salary,
+            age
+        } = request.body;
+
+        if (
+            typeof username !== "string" || !username.trim() ||
+            typeof password !== "string" || password.length < 8 ||
+            typeof firstname !== "string" || !firstname.trim() ||
+            typeof lastname !== "string" || !lastname.trim() ||
+            firstname === "-" ||
+            lastname === "-" ||
+            typeof salary !== "number" || !Number.isFinite(salary) || salary < 0 ||
+            !Number.isInteger(age) || age < 0 || age > 150
+        ) {
+            return response.status(400).json({
+                success: false,
+                message: "Invalid user information"
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        const db = dbService.getDbServiceInstance();
+
+        const result = await db.insertNewUser(
+            username.trim(),
+            hashedPassword,
+            firstname.trim(),
+            lastname.trim(),
+            salary,
+            age
+        );
+
+        response.status(201).json({
+            success: true,
+            data: result,
+            message: "User added"
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        if (error.code === "ER_DUP_ENTRY") {
+            return response.status(409).json({
+                success: false,
+                message: "Username already exists"
+            });
+        }
+
+        response.status(500).json({
+            success: false,
+            message: "Failed to insert user"
+        });
+    }
 });
+
 
 app.post("/signup",  async (request, response) => {
     try {
@@ -70,7 +119,6 @@ app.post("/signup",  async (request, response) => {
             age
         } = request.body;
 
-        // Validate input
         if (
             typeof username !== "string" ||
             typeof password !== "string" ||
@@ -83,6 +131,8 @@ app.post("/signup",  async (request, response) => {
             firstname.length > 50 ||
             lastname.length > 50 ||
             password.length < 8 ||
+            firstname === "-" ||
+            lastname === "-" ||
             Buffer.byteLength(password, "utf8") > 72 ||
             !Number.isInteger(age) ||
             age < 0 ||
@@ -98,11 +148,8 @@ app.post("/signup",  async (request, response) => {
         }
 
         const db = dbService.getDbServiceInstance();
-
-        // Hash the password
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Insert the user
         await db.createUser(
             username.trim(),
             hashedPassword,
@@ -149,8 +196,6 @@ app.post("/signin",  async (request, response) => {
         }
 
         const db = dbService.getDbServiceInstance();
-
-        // Find user
         const user = await db.getUserByUsername(username);
 
         if (!user) {
@@ -159,8 +204,6 @@ app.post("/signin",  async (request, response) => {
                 message: "Invalid username or password."
             });
         }
-
-        // Compare password with stored hash
         const passwordMatches = await bcrypt.compare(
             password,
             user.password
@@ -173,7 +216,6 @@ app.post("/signin",  async (request, response) => {
             });
         }
 
-        // Create a new authenticated session
         request.session.regenerate(async (err) => {
             if (err) {
                 return response.status(500).json({
@@ -224,18 +266,18 @@ app.post("/signin",  async (request, response) => {
 
 
 
-// read 
 app.get('/getAll', requireLogin, (request, response) => {
     
     const db = dbService.getDbServiceInstance();
 
     
-    const result =  db.getAllData(); // call a DB function
+    const result =  db.getAllData();
 
     result
     .then(data => response.json({data: data}))
     .catch(err => console.log(err));
 });
+
 
 app.get("/me", async (request, response) => {
     if (!request.session.username) {
@@ -274,6 +316,8 @@ app.get("/me", async (request, response) => {
     }
 });
 
+
+
 app.post("/logout", (request, response) => {
     request.session.destroy((err) => {
         if (err) {
@@ -292,24 +336,84 @@ app.post("/logout", (request, response) => {
     });
 });
 
-app.get('/search/:name', requireLogin, (request, response) => { // we can debug by URL
+
+app.get('/searchSalary/:lower/:upper', requireLogin, (request, response) =>{
+    const {upper, lower} = request.params;
+    const db = dbService.getDbServiceInstance();
+
+    const result = db.searchBySalary(lower, upper);
+
+    result
+    .then(data => response.json({data: data}))
+    .catch(err => console.log(err));
+})
+
+app.get('/searchAge/:lower/:upper', requireLogin, (request, response) =>{
+    const {upper, lower} = request.params;
+    const db = dbService.getDbServiceInstance();
+
+    const result = db.searchByAge(lower, upper);
+
+    result
+    .then(data => response.json({data: data}))
+    .catch(err => console.log(err));
+})
+
+app.get('/searchNULLSignin', requireLogin, (request, response) => {
+    const db = dbService.getDbServiceInstance();
+    const result = db.searchByNULLSignin();
+    result
+    .then(data => response.json({data: data}))
+    .catch(err => console.log(err));
+
+})
+
+app.get('/searchJohn', requireLogin, (request, response) => {
+    const db = dbService.getDbServiceInstance();
+    const result = db.searchByJohn();
+    result
+    .then(data => response.json({data: data}))
+    .catch(err => console.log(err));
+
+})
+
+app.get('/searchJohnSame', requireLogin, (request, response) => {
+    const db = dbService.getDbServiceInstance();
+    const result = db.searchByJohnSame();
+    result
+    .then(data => response.json({data: data}))
+    .catch(err => console.log(err));
+
+})
+
+app.get('/searchSameDay', requireLogin, (request, response) => {
+    const db = dbService.getDbServiceInstance();
+    const result = db.searchBySameDay();
+    result
+    .then(data => response.json({data: data}))
+    .catch(err => console.log(err));
+
+})
+
+
+app.get('/search/:firstname/:lastname', requireLogin, (request, response) => {
     
-    const {name} = request.params;
-    
-    console.log(name);
+    const {firstname, lastname} = request.params;
+    console.log(firstname);
 
     const db = dbService.getDbServiceInstance();
 
     let result;
-    if(name === "all") // in case we want to search all
+    if(firstname === "-" && lastname === "-")
        result = db.getAllData()
     else 
-       result =  db.searchByName(name); // call a DB function
+       result =  db.searchByName(firstname,lastname);
 
     result
     .then(data => response.json({data: data}))
     .catch(err => console.log(err));
 });
+
 
 app.get('/searchid/:id', requireLogin, (request, response) => {
     
@@ -319,23 +423,21 @@ app.get('/searchid/:id', requireLogin, (request, response) => {
 
     const db = dbService.getDbServiceInstance();
 
-    let result = db.searchById(id);
+    const result = db.searchById(id);
 
     result.then(data => response.json({data: data})).catch(err => console.log(err));
 });
 
 
-// update
-app.patch('/update', requireLogin,
-     (request, response) => {
+
+
+app.patch('/update', requireLogin, (request, response) => {
           console.log("app: update is called");
-          //console.log(request.body);
-          const{id, name} = request.body;
-          console.log(id);
-          console.log(name);
+          const{id, firstname, lastname} = request.body;
+    
           const db = dbService.getDbServiceInstance();
 
-          const result = db.updateNameById(id, name);
+          const result = db.updateNameById(id, firstname, lastname);
 
           result.then(data => response.json({success: true}))
           .catch(err => console.log(err)); 
@@ -343,7 +445,8 @@ app.patch('/update', requireLogin,
      }
 );
 
-// delete service
+
+
 app.delete('/delete/:id', requireLogin,
      (request, response) => {     
         const {id} = request.params;
@@ -358,7 +461,7 @@ app.delete('/delete/:id', requireLogin,
      }
 )   
 
-// debug function, will be deleted later
+
 app.post('/debug',requireLogin, (request, response) => {
     // console.log(request.body); 
 
@@ -368,14 +471,13 @@ app.post('/debug',requireLogin, (request, response) => {
     return response.json({success: true});
 });   
 
-// debug function: use http://localhost:5050/testdb to try a DB function
-// should be deleted finally
+
 app.get('/testdb', requireLogin, (request, response) => {
     
     const db = dbService.getDbServiceInstance();
 
     
-    const result =  db.deleteById("14"); // call a DB function here, change it to the one you want
+    const result =  db.deleteById("14");
 
     result
     .then(data => response.json({data: data}))
@@ -383,17 +485,7 @@ app.get('/testdb', requireLogin, (request, response) => {
 });
 
 
-// set up the web server listener
-// if we use .env to configure
-/*
-app.listen(process.env.PORT, 
-    () => {
-        console.log("I am listening on the configured port " + process.env.PORT)
-    }
-);
-*/
 
-// if we configure here directly
 
 const frontendPath = path.join(__dirname, "../frontend");
 
@@ -405,21 +497,17 @@ function requireLogin(request, response, next) {
     next();
 }
 
-// First page visitors see
 app.get("/", (request, response) => {
     response.sendFile(path.join(frontendPath, "login.html"));
 });
 
-// Existing database page, available after login
 app.get("/index.html", requireLogin, (request, response) => {
     response.sendFile(path.join(frontendPath, "index.html"));
 });
 
-// Serve frontend CSS and JavaScript
 app.use(express.static(frontendPath, {
     index: false
 }));
-//app.use(express.static(path.join(__dirname, "../frontend")));
 app.listen(5050, 
     () => {
         console.log("I am listening on the fixed port 5050.")

@@ -8,38 +8,100 @@
 </head>
 <body>
   <main>
-      <label>Name:</label>
-      <input type="text" id="name-input">
-      <button id="add-name-btn">Add Name</button>
- 
-     <br><br><br>
+      <label id = "method-label">Add new user</label>
+      <br>
+      <label>Password:</label>      <input type="password" id="password-add-input" minlength="8" required>          
+      <label>username:</label>      <input type="text" id="username-add-input">          
+      <label>first name:</label>    <input type="text" id="firstname-add-input">          
+      <label>last name:</label>     <input type="text" id="lastname-add-input">           
+      <label>Salary:</label>        <input type="number" id="salary-add-input" min="0" step="0.01">
+      <label>Age:</label>           <input type="number" id="age-add-input" min="0" max="150" step="1">                   
+      <button type="submit" id="add-btn">Add User</button> <p id="login-message"></p>
+
+
+
+
+
+     <br><br><br><br>
+     <label id = "method-label">Search for users</label>
+     <br>
      <div> 
-        <input placeholder="search by name" id="search-input">
+        <label>Search by name        </label>
+        <input placeholder="first name" id="search-input-name-first"> <input placeholder="last name" id="search-input-name-last">
         <button id="search-btn">Search</button>
+        <label id="tip-label">tip: you may also enter just a firstname, just a last name, or neither</label>
      </div>
+     <br>
      <div>
+        <label>Search by id          </label>
         <input placeholder = "search by id" id="search-input-id">
         <button id = "search-id-btn"> Search </button>
      </div>
+     <br>
+     <div>
+        <label>Search by salary range</label>
+        <input type="number" placeholder="lower bound" id="search-input-X-salary" min="0">
+        <input type="number" placeholder="upper bound" id="search-input-Y-salary" min="0">
+        <button id = "search-salary-btn"> Search </button>
+     </div>
+     <br>
+     <div>
+        <label>Search by age range</label>
+        <input type="number" placeholder="lower bound" id="search-input-X-age" min="0">
+        <input type="number" placeholder="upper bound" id="search-input-Y-age" min="0" max="150">
+        <button id = "search-age-btn"> Search </button>
+     </div>
+     <br>
+     <div>
+        <button id = "search-NULL-signin-btn"> Search by NULL sign-in </button>
+     </div>
+     <br>
+     <div>
+        <button id = "search-John-after-btn"> Search by users after John </button>
+     </div>
+     <br>
+     <div>
+        <button id = "search-John-sameday-btn"> Search by users registered same day as John </button>
+     </div>
+     <br>
+     <div>
+        <button id = "search-sameday-btn"> Search by users registered today </button>
+     </div>
 
 
-     <table id="table">
-         <thead>
-             <th>Id</th>
-             <th>Name</th>
-             <th>Date Added</th>
-             <th>Delete</th>
-             <th>Edit</th>  
-         </thead>
-         <tbody></tbody>
-     </table>
 
-     <section hidden id="update-row">
-         <label>Name:</label>
-         <input type="text" id="update-name-input">
-         <button id="update-row-btn" value="">Update</button>
-    </section>
-    <button id="logout-btn">Log Out</button>
+     <br><br><br>
+
+     <label id = "method-label">Results</label>
+     <br>
+<table id="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Salary</th>
+            <th>Age</th>
+            <th>Registration Date</th>
+            <th>Last Sign In</th>
+            <th>Delete</th>
+            <th>Edit</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<section hidden id="update-row">
+    <label>First Name:</label>
+    <input type="text" id="update-firstname-input">
+
+    <label>Last Name:</label>
+    <input type="text" id="update-lastname-input">
+
+    <button id="update-row-btn">Update</button>
+</section>
+    <br><br><br><button id="logout-btn">Log Out</button>
 </main>
 <script src="index.js"></script>
 </body>
