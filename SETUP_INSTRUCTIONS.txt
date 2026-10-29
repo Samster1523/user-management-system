@@ -1,0 +1,112 @@
+USER MANAGEMENT SYSTEM — SETUP INSTRUCTIONS
+
+REQUIREMENTS
+
+Node.js and npm installed
+MySQL Server (XAMPP recommended)
+Web browser
+Port 5050 available
+
+1. DATABASE SETUP
+
+Start MySQL using XAMPP.
+
+Open http://localhost/phpmyadmin/
+
+Create a database named web_app.
+
+Select the database and open the SQL tab.
+
+Copy and execute only the CREATE TABLE statement from sql.txt.
+
+Execute the sample-user INSERT statement from sql.txt to populate the table.
+
+IMPORTANT NOTE BEFORE MOVING FORWARD: The remaining statements in sql.txt document the queries used in the application. Do not execute the entire file as one script because some statements contain parameter placeholders.
+
+2. BACKEND CONFIGURATION
+
+Open the project1/Backend folder.
+
+Create a file named .env and configure the environment variables required by app.js and dbService.js.
+
+For a local XAMPP MySQL installation, the database configuration is typically:
+
+HOST=localhost
+DB_USER=root
+PASSWORD=
+DATABASE=web_app
+DB_PORT=3306
+
+Set any additional variables required by app.js, including the session secret, using the exact variable names referenced in the code.
+
+3. INSTALL DEPENDENCIES
+
+Open a terminal inside project1/Backend.
+
+Run:
+
+npm install
+
+On Windows PowerShell, npm.cmd install can be used if npm.ps1 is blocked.
+
+4. START THE SERVER
+
+Run:
+
+npm start
+
+On Windows PowerShell, use npm.cmd start if necessary.
+
+The server runs on port 5050.
+
+5. OPEN THE APPLICATION
+
+Registration:
+http://localhost:5050/signup.html
+
+Sign-in:
+http://localhost:5050/
+
+User Management Dashboard:
+http://localhost:5050/index.html
+
+Register an account, sign in, and test the user management functions.
+
+6. APPLICATION FEATURES
+
+User registration
+
+User sign-in using bcrypt password verification
+
+Parameterized SQL queries
+
+User search by first and/or last name
+
+User search by ID
+
+Salary range search
+
+Age range search
+
+Search users who never signed in
+
+Search users who registered after John
+
+Search users who registered on the same day as John
+
+Search users registered today
+
+Edit user information
+
+Delete user accounts
+
+Log out
+
+7. PROJECT FILES
+
+project1/Backend/app.js — Express server and API routes
+project1/Backend/dbService.js — SQL queries and database functions
+project1/Backend/package.json — Node.js dependencies
+project1/Frontend/ — HTML, CSS and JavaScript
+README.md — Original project information and sample SQL
+sql.txt — Database schema and SQL statements
